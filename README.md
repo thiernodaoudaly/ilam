@@ -2,12 +2,14 @@
 
 > *Ilam* means **"the lake", "the flow", "the water current", or "the stream"** in Pulaar — data flowing from raw sources to insight, continuously and autonomously.
 
-<div align="center">
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Stack](https://img.shields.io/badge/stack-Iceberg%20%7C%20Trino%20%7C%20Flink%20%7C%20dbt%20%7C%20Airflow-orange)]()
-[![Status](https://img.shields.io/badge/status-WIP-yellow)]()
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)]()
-</div>
+<p align="center">
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" />
+  </a>
+  <img src="https://img.shields.io/badge/stack-Iceberg%20%7C%20Trino%20%7C%20Flink%20%7C%20dbt%20%7C%20Airflow-orange" />
+  <img src="https://img.shields.io/badge/status-WIP-yellow" />
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" />
+</p>
 
 Ilam is a fully open-source, end-to-end Data Lakehouse platform designed to unify
 high-performance storage, real-time stream processing, semantic transformation, and
