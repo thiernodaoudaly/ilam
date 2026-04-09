@@ -42,7 +42,7 @@ logs:
 health:
 	@echo "$(CYAN)Checking services health...$(RESET)"
 	@echo -n "MinIO:      "; curl -sf http://localhost:9000/minio/health/live && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
-	@echo -n "Nessie:     "; curl -sf http://localhost:19120/api/v2/config > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
+	@echo -n "Iceberg REST: "; curl -sf http://localhost:8181/v1/config > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
 	@echo -n "Trino:      "; curl -sf http://localhost:8080/v1/info > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
 	@echo -n "Flink:      "; curl -sf http://localhost:8081/overview > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
 	@echo -n "Airflow:    "; curl -sf http://localhost:8082/health > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
@@ -51,3 +51,18 @@ health:
 
 clean:
 	docker compose down -v --remove-orphans
+
+trino-cli:
+	docker exec -it ilam-trino trino --catalog iceberg
+
+init-warehouse:
+	@echo "$(CYAN)Initializing Iceberg warehouse...$(RESET)"
+	docker exec -i ilam-trino trino --catalog iceberg < warehouse/bronze/ddl/create_bronze.sql
+	docker exec -i ilam-trino trino --catalog iceberg < warehouse/silver/ddl/create_silver.sql
+	docker exec -i ilam-trino trino --catalog iceberg < warehouse/gold/ddl/create_gold.sql
+	@echo "$(GREEN)Warehouse initialized.$(RESET)"
+
+show-tables:
+	@echo "$(CYAN)Listing all Iceberg tables...$(RESET)"
+	docker exec -i ilam-trino trino --catalog iceberg --execute \
+		"SELECT table_schema, table_name FROM iceberg.information_schema.tables WHERE table_schema IN ('bronze','silver','gold') ORDER BY 1,2;"

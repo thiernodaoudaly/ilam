@@ -75,7 +75,7 @@ services:
     networks:
       - ilam-net
 
-  iceberg-rest:
+iceberg-rest:
     image: tabulario/iceberg-rest:latest
     container_name: ilam-iceberg-rest
     restart: unless-stopped
@@ -95,23 +95,38 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8181/v1/config"]
-      interval: 20s
-      timeout: 10s
-      retries: 10
-      start_period: 120s  
+      test: ["CMD", "curl", "-f", "http://localhost:8181/v1/config"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ilam-net
+  nessie:
+    image: projectnessie/nessie:latest
+    container_name: ilam-nessie
+    restart: unless-stopped
+    environment:
+      QUARKUS_PROFILE: prod
+      NESSIE_VERSION_STORE_TYPE: IN_MEMORY
+    ports:
+      - "${NESSIE_PORT:-19120}:19120"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19120/api/v2/config"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     networks:
       - ilam-net
 
-  trino:
+  trino
     image: trinodb/trino:435
     container_name: ilam-trino
     restart: unless-stopped
     depends_on:
       minio:
         condition: service_healthy
-      iceberg-rest:
-        condition: service_started
+      nessie:
+        condition: service_healthy
     volumes:
       - ./infra/trino/catalog:/etc/trino/catalog
       - ./infra/trino/config/config.properties:/etc/trino/config.properties
