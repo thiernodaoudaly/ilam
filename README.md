@@ -1,4 +1,4 @@
-# Ilam - Open-Source Data Lakehouse Platform
+# Ilam — Open-Source Data Lakehouse Platform
 
 > *Ilam* means **"the lake", "the flow", "the water current", or "the stream"** in Pulaar — data flowing from raw sources to insight, continuously and autonomously.
 
