@@ -121,14 +121,14 @@ ilam/
 
 | ADR | Decision | Status |
 |-----|----------|--------|
-| [ADR-001](docs/decisions/ADR-001-iceberg-vs-delta.md) | Apache Iceberg over Delta Lake | Accepted |
-| [ADR-002](docs/decisions/ADR-002-trino-vs-spark.md) | Trino over Spark SQL | Accepted |
-| [ADR-003](docs/decisions/ADR-003-minio-vs-s3.md) | MinIO for local sovereignty | Accepted |
+| [ADR-001](docs/decisions/ADR-001.md) | Apache Iceberg over Delta Lake | Accepted |
+| [ADR-002](docs/decisions/ADR-002.md) | Trino over Spark SQL | Accepted |
+| [ADR-003](docs/decisions/ADR-003.md) | MinIO for local sovereignty | Accepted |
 
 ## Roadmap
 
 - [x] Step 1 — Base infrastructure (Docker Compose, MinIO, Nessie, Trino)
-- [ ] Step 2 — Iceberg tables DDL (Bronze / Silver / Gold)
+- [x] Step 2 — Iceberg tables DDL (Bronze / Silver / Gold)
 - [ ] Step 3 — Flink ingestion jobs
 - [ ] Step 4 — dbt transformation models
 - [ ] Step 5 — Airflow orchestration DAGs
