@@ -22,6 +22,16 @@ help:
 	@echo "  Grafana  → http://localhost:3000"
 	@echo ""
 
+setup: start
+	@echo "$(CYAN)Waiting for all services...$(RESET)"
+	@sleep 30
+	@until curl -sf http://localhost:8181/v1/config > /dev/null 2>&1; do \
+		echo "  waiting for iceberg-rest..."; sleep 5; \
+	done
+	@echo "$(GREEN)Catalog ready.$(RESET)"
+	$(MAKE) init-warehouse
+	@echo "$(GREEN)ILAM is ready. Run 'make generate-data' to load data.$(RESET)"	
+
 start:
 	@echo "$(CYAN)Starting ILAM...$(RESET)"
 	@mkdir -p orchestration/dags orchestration/logs transform
@@ -66,3 +76,26 @@ show-tables:
 	@echo "$(CYAN)Listing all Iceberg tables...$(RESET)"
 	docker exec -i ilam-trino trino --catalog iceberg --execute \
 		"SELECT table_schema, table_name FROM iceberg.information_schema.tables WHERE table_schema IN ('bronze','silver','gold') ORDER BY 1,2;"
+
+generate-data:
+	@echo "$(CYAN)Generating Sonatel simulated data...$(RESET)"
+	.venv/bin/python3 ingestion/generators/sonatel_data_generator.py
+
+verify-data:
+	@echo "$(CYAN)Verifying row counts in Bronze tables...$(RESET)"
+	docker exec -i ilam-trino trino --catalog iceberg --execute \
+		"SELECT table_schema, table_name, \
+		(SELECT COUNT(*) FROM iceberg.bronze.network_events) as cnt \
+		FROM iceberg.information_schema.tables \
+		WHERE table_schema = 'bronze' LIMIT 1;"
+	docker exec -i ilam-trino trino --catalog iceberg --execute \
+		"SELECT 'subscribers' as tbl, COUNT(*) as cnt FROM iceberg.bronze.subscribers \
+		UNION ALL SELECT 'contracts', COUNT(*) FROM iceberg.bronze.contracts \
+		UNION ALL SELECT 'cdr_voice', COUNT(*) FROM iceberg.bronze.cdr_voice \
+		UNION ALL SELECT 'cdr_sms', COUNT(*) FROM iceberg.bronze.cdr_sms \
+		UNION ALL SELECT 'cdr_data', COUNT(*) FROM iceberg.bronze.cdr_data \
+		UNION ALL SELECT 'network_events', COUNT(*) FROM iceberg.bronze.network_events \
+		UNION ALL SELECT 'recharges', COUNT(*) FROM iceberg.bronze.recharges \
+		UNION ALL SELECT 'complaints', COUNT(*) FROM iceberg.bronze.complaints \
+		UNION ALL SELECT 'om_transactions', COUNT(*) FROM iceberg.bronze.om_transactions \
+		ORDER BY tbl;"
