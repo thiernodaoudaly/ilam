@@ -19,26 +19,29 @@ At its core, Ilam introduces an **agentic intelligence layer** that transcends s
 pipeline orchestration toward a dynamic, self-adaptive data flow management system,
 optimizing resilience and observability from end to end.
 
-## Architecture Overview
+Built on real-world telecom data from the **Sonatel / Orange Senegal** context,
+covering CDR (voice, SMS, data), network events, CRM, and Orange Money transactions.
+
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Agentic Layer      LangGraph agents · ReAct · autonomous   │
-├─────────────────────────────────────────────────────────────┤
-│  Orchestration      Apache Airflow · DAGs · Sensors         │
-├──────────────────────────┬──────────────────────────────────┤
-│  Transformation          │  Query                           │
-│  dbt Core                │  Trino (MPP · federation)        │
-├─────────────────┬────────┴──────────────────────────────────┤
-│  Medallion      │  Bronze → Silver → Gold                   │
-├─────────────────┴──────────────────────────────────────────-┤
-│  Storage        Apache Iceberg · MinIO · Parquet            │
-├─────────────────────────────────────────────────────────────┤
-│  Ingestion      Apache Flink · stream · exactly-once        │
-├─────────────────────────────────────────────────────────────┤
-│  Security       Keycloak · Apache Ranger · Vault · mTLS     │
-│  Observability  Prometheus · Grafana · OpenLineage          │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  Agentic Layer         LangGraph · ReAct · autonomous agents    │
+├─────────────────────────────────────────────────────────────────┤
+│  Orchestration         Apache Airflow · DAGs · Sensors          │
+├───────────────────────────┬─────────────────────────────────────┤
+│  Transformation           │  Query Engine                       │
+│  dbt Core                 │  Trino · MPP · federation           │
+├───────────────────────────┴─────────────────────────────────────┤
+│  Medallion Architecture   Bronze → Silver → Gold                │
+├─────────────────────────────────────────────────────────────────┤
+│  Storage                  Apache Iceberg · MinIO · Parquet      │
+├─────────────────────────────────────────────────────────────────┤
+│  Ingestion                Apache Flink · stream · exactly-once  │
+├─────────────────────────────────────────────────────────────────┤
+│  Security                 Keycloak · Apache Ranger · mTLS       │
+│  Observability            Prometheus · Grafana · OpenLineage    │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Tech Stack
@@ -46,9 +49,9 @@ optimizing resilience and observability from end to end.
 | Layer | Tool | Role |
 |-------|------|------|
 | Ingestion | Apache Flink 1.18 | Stream processing, exactly-once guarantees |
-| Storage | MinIO | S3-compatible object storage |
+| Storage | MinIO | S3-compatible object storage, Erasure Coding |
 | Table format | Apache Iceberg | ACID transactions, MVCC, time travel |
-| Catalog | Project Nessie | Git-like Iceberg catalog |
+| Catalog | tabulario/iceberg-rest | REST Iceberg catalog (dev) |
 | Query engine | Trino 435 | Distributed SQL, multi-source federation |
 | Transformation | dbt Core | ELT pipelines, semantic layer |
 | Orchestration | Apache Airflow 2.8 | DAG-based pipeline orchestration |
@@ -58,40 +61,58 @@ optimizing resilience and observability from end to end.
 | Security | Keycloak + Apache Ranger | Authentication and fine-grained authorization |
 | Agents | LangGraph | Agentic intelligence layer |
 
-## Quick Start
+## Data Model — Sonatel Telecom
 
-**Prerequisites**
+The platform is built around a realistic Senegalese telecom data model:
+
+| Layer | Tables | Description |
+|-------|--------|-------------|
+| Bronze | network_events, cdr_voice, cdr_sms, cdr_data | Raw network and CDR data |
+| Bronze | subscribers, contracts, recharges, complaints, om_transactions | Raw CRM and Orange Money |
+| Silver | network_events, cdr_enriched, subscribers, contracts, om_transactions | Enriched business entities |
+| Gold | mart_revenue, mart_network_quality, mart_churn, mart_arpu, mart_om_activity, mart_usage | Analytical Data Marts |
+
+## Prerequisites
 
 - Docker >= 24.0
 - Docker Compose >= 2.20
 - Make
+- Python 3.10+ with venv
 - 8 GB RAM minimum (16 GB recommended)
 - WSL2 + Ubuntu (on Windows)
 
-**1. Clone and configure**
+## Quick Start
 
 ```bash
+# 1. Clone and configure
 git clone https://github.com/thiernodaoudaly/ilam.git
 cd ilam
 cp .env.example .env
-# Generate a Fernet key for Airflow:
+# Edit .env — generate a Fernet key for Airflow:
 # python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-# Paste it into .env as AIRFLOW__CORE__FERNET_KEY
-```
 
-**2. Start the platform**
+# 2. Create Python virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-```bash
+# 3. Start all services
 make start
-```
 
-**3. Check services health**
+# 4. Initialize the Iceberg warehouse (required after every restart)
+make init-warehouse
 
-```bash
+# 5. Check services health
 make health
+
+# 6. Generate simulated Sonatel data
+make generate-data
+
+# 7. Verify data was loaded
+make verify-data
 ```
 
-**4. Access the UIs**
+## Service URLs
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
@@ -101,46 +122,91 @@ make health
 | Airflow UI | http://localhost:8082 | See `.env` |
 | Prometheus | http://localhost:9090 | None |
 | Grafana | http://localhost:3000 | See `.env` |
+| Iceberg REST | http://localhost:8181 | None |
+
+## Makefile Reference
+
+```bash
+# Infrastructure lifecycle
+make start            # Start all services
+make stop             # Stop all services
+make restart          # Restart all services
+make status           # Show containers status
+make health           # Check all services health
+make logs             # Tail all service logs
+make clean            # Remove containers and volumes
+
+# Warehouse management
+make init-warehouse   # Create Iceberg schemas and tables (run after every restart)
+make show-tables      # List all Iceberg tables (Bronze / Silver / Gold)
+make trino-cli        # Open interactive Trino SQL shell
+
+# Data
+make generate-data    # Generate and insert simulated Sonatel telecom data
+make verify-data      # Check row counts in all Bronze tables
+```
+
+## Important — After Every Restart
+
+The Iceberg REST catalog uses in-memory storage by default. After restarting
+the platform, always run:
+
+```bash
+make init-warehouse
+```
+
+This recreates table definitions in the catalog. Your data in MinIO is safe —
+only the catalog index needs to be refreshed. See ADR-004 for details.
 
 ## Project Structure
 
 ```
 ilam/
-├── docs/               Architecture docs, ADRs
-├── infra/              Docker configs (Trino, Flink, Monitoring)
-├── ingestion/          Flink jobs
-├── warehouse/          Iceberg DDL (Bronze / Silver / Gold)
-├── transform/          dbt project
-├── orchestration/      Airflow DAGs
-├── agents/             Agentic intelligence layer
-├── quality/            Great Expectations suites
-└── scripts/            Utility scripts
+├── docs/
+│   └── decisions/          Architecture Decision Records (ADR-001 to ADR-004)
+├── infra/
+│   ├── trino/              Trino catalog and server configuration
+│   └── monitoring/         Prometheus and Grafana configuration
+├── ingestion/
+│   └── generators/         Sonatel simulated data generator (Python)
+├── warehouse/
+│   ├── bronze/ddl/         Raw layer DDL (9 tables)
+│   ├── silver/ddl/         Enriched layer DDL (5 tables)
+│   └── gold/ddl/           Analytical layer DDL (6 tables)
+├── transform/              dbt project (coming)
+├── orchestration/          Airflow DAGs (coming)
+├── agents/                 Agentic intelligence layer (coming)
+├── quality/                Great Expectations suites (coming)
+├── scripts/                Utility scripts
+├── .env.example            Environment variables template
+├── docker-compose.yml      Full infrastructure definition
+├── Makefile                Infrastructure and data lifecycle commands
+└── requirements.txt        Python dependencies
 ```
 
 ## Architecture Decision Records
 
 | ADR | Decision | Status |
 |-----|----------|--------|
-| [ADR-001](docs/decisions/ADR-001.md) | Apache Iceberg over Delta Lake | Accepted |
-| [ADR-002](docs/decisions/ADR-002.md) | Trino over Spark SQL | Accepted |
-| [ADR-003](docs/decisions/ADR-003.md) | MinIO for local sovereignty | Accepted |
+| [ADR-001](docs/decisions/ADR-001-iceberg-vs-delta.md) | Apache Iceberg over Delta Lake | Accepted |
+| [ADR-002](docs/decisions/ADR-002-trino-vs-spark.md) | Trino over Spark SQL | Accepted |
+| [ADR-003](docs/decisions/ADR-003-minio-vs-s3.md) | MinIO for data sovereignty | Accepted |
+| [ADR-004](docs/decisions/ADR-004-iceberg-rest-vs-nessie.md) | iceberg-rest over Nessie (dev) | Accepted |
 
 ## Roadmap
 
-- [x] Step 1 — Base infrastructure (Docker Compose, MinIO, Nessie, Trino)
-- [x] Step 2 — Iceberg tables DDL (Bronze / Silver / Gold)
-- [ ] Step 3 — Flink ingestion jobs
-- [ ] Step 4 — dbt transformation models
+- [x] Step 1 — Base infrastructure (Docker Compose, MinIO, Iceberg REST, Trino, Flink, Airflow)
+- [x] Step 2 — Iceberg tables DDL (Bronze / Silver / Gold) — 20 tables
+- [x] Step 3 — Simulated Sonatel data generator — 2 901 rows across 9 Bronze tables
+- [ ] Step 4 — dbt transformation models (Bronze → Silver → Gold)
 - [ ] Step 5 — Airflow orchestration DAGs
-- [ ] Step 6 — Data Quality (Great Expectations)
-- [ ] Step 7 — Observability (Prometheus, Grafana)
-- [ ] Step 8 — Security (Keycloak, Ranger)
-- [ ] Step 9 — Agentic intelligence layer
+- [ ] Step 6 — Data quality (Great Expectations)
+- [ ] Step 7 — Observability (Prometheus, Grafana dashboards)
+- [ ] Step 8 — Security (Keycloak, Apache Ranger)
+- [ ] Step 9 — Agentic intelligence layer (LangGraph, ReAct)
 
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE)
-
----
 
 *Built with purpose. Named after the flow.*
