@@ -20,7 +20,7 @@ help:
 	@echo "  Flink    → http://localhost:8081"
 	@echo "  Airflow  → http://localhost:8082"
 	@echo "  Grafana  → http://localhost:3000"
-	@echo ""
+	@echo ""	
 
 setup: start
 	@echo "$(CYAN)Waiting for all services...$(RESET)"
@@ -30,7 +30,7 @@ setup: start
 	done
 	@echo "$(GREEN)Catalog ready.$(RESET)"
 	$(MAKE) init-warehouse
-	@echo "$(GREEN)ILAM is ready. Run 'make generate-data' to load data.$(RESET)"	
+	@echo "$(GREEN)ILAM is ready. Catalog is now persistent.$(RESET)"
 
 start:
 	@echo "$(CYAN)Starting ILAM...$(RESET)"
@@ -53,6 +53,7 @@ health:
 	@echo "$(CYAN)Checking services health...$(RESET)"
 	@echo -n "MinIO:      "; curl -sf http://localhost:9000/minio/health/live && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
 	@echo -n "Iceberg REST: "; curl -sf http://localhost:8181/v1/config > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
+	@echo -n "Iceberg DB:   "; docker exec ilam-iceberg-catalog-db pg_isready -U iceberg -d iceberg_catalog > /dev/null 2>&1 && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"	
 	@echo -n "Trino:      "; curl -sf http://localhost:8080/v1/info > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
 	@echo -n "Flink:      "; curl -sf http://localhost:8081/overview > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
 	@echo -n "Airflow:    "; curl -sf http://localhost:8082/health > /dev/null && echo "$(GREEN)OK$(RESET)" || echo "\033[0;31mFAIL\033[0m"
