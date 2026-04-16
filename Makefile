@@ -68,29 +68,31 @@ trino-cli:
 
 init-warehouse:
 	@echo "$(CYAN)Initializing Iceberg warehouse...$(RESET)"
-	docker exec -i ilam-trino trino --catalog iceberg < warehouse/bronze/ddl/create_bronze.sql
-	docker exec -i ilam-trino trino --catalog iceberg < warehouse/silver/ddl/create_silver.sql
-	docker exec -i ilam-trino trino --catalog iceberg < warehouse/gold/ddl/create_gold.sql
+	docker exec -i ilam-trino trino --catalog iceberg \
+		< warehouse/bronze/ddl/create_bronze.sql 2>/dev/null
+	docker exec -i ilam-trino trino --catalog iceberg \
+		< warehouse/silver/ddl/create_silver.sql 2>/dev/null
+	docker exec -i ilam-trino trino --catalog iceberg \
+		< warehouse/gold/ddl/create_gold.sql 2>/dev/null
 	@echo "$(GREEN)Warehouse initialized.$(RESET)"
 
 show-tables:
 	@echo "$(CYAN)Listing all Iceberg tables...$(RESET)"
 	docker exec -i ilam-trino trino --catalog iceberg --execute \
-		"SELECT table_schema, table_name FROM iceberg.information_schema.tables WHERE table_schema IN ('bronze','silver','gold') ORDER BY 1,2;"
+		"SELECT table_schema, table_name \
+		FROM iceberg.information_schema.tables \
+		WHERE table_schema IN ('bronze','silver','gold') \
+		ORDER BY 1,2;" 2>/dev/null
 
 generate-data:
 	@echo "$(CYAN)Generating Sonatel simulated data...$(RESET)"
 	.venv/bin/python3 ingestion/generators/sonatel_data_generator.py
-
+	
 verify-data:
 	@echo "$(CYAN)Verifying row counts in Bronze tables...$(RESET)"
 	docker exec -i ilam-trino trino --catalog iceberg --execute \
-		"SELECT table_schema, table_name, \
-		(SELECT COUNT(*) FROM iceberg.bronze.network_events) as cnt \
-		FROM iceberg.information_schema.tables \
-		WHERE table_schema = 'bronze' LIMIT 1;"
-	docker exec -i ilam-trino trino --catalog iceberg --execute \
-		"SELECT 'subscribers' as tbl, COUNT(*) as cnt FROM iceberg.bronze.subscribers \
+		"SELECT 'subscribers' as tbl, COUNT(*) as cnt \
+		FROM iceberg.bronze.subscribers \
 		UNION ALL SELECT 'contracts', COUNT(*) FROM iceberg.bronze.contracts \
 		UNION ALL SELECT 'cdr_voice', COUNT(*) FROM iceberg.bronze.cdr_voice \
 		UNION ALL SELECT 'cdr_sms', COUNT(*) FROM iceberg.bronze.cdr_sms \
@@ -99,4 +101,4 @@ verify-data:
 		UNION ALL SELECT 'recharges', COUNT(*) FROM iceberg.bronze.recharges \
 		UNION ALL SELECT 'complaints', COUNT(*) FROM iceberg.bronze.complaints \
 		UNION ALL SELECT 'om_transactions', COUNT(*) FROM iceberg.bronze.om_transactions \
-		ORDER BY tbl;"
+		ORDER BY tbl;" 2>/dev/null
