@@ -51,7 +51,7 @@ covering CDR (voice, SMS, data), network events, CRM, and Orange Money transacti
 | Ingestion | Apache Flink 1.18 | Stream processing, exactly-once guarantees |
 | Storage | MinIO | S3-compatible object storage, Erasure Coding |
 | Table format | Apache Iceberg | ACID transactions, MVCC, time travel |
-| Catalog | tabulario/iceberg-rest | REST Iceberg catalog (dev) |
+| Catalog | tabulario/iceberg-rest + PostgreSQL | Persistent REST Iceberg catalog |
 | Query engine | Trino 435 | Distributed SQL, multi-source federation |
 | Transformation | dbt Core | ELT pipelines, semantic layer |
 | Orchestration | Apache Airflow 2.8 | DAG-based pipeline orchestration |
@@ -99,16 +99,13 @@ pip install -r requirements.txt
 # 3. Start all services
 make start
 
-# 4. Initialize the Iceberg warehouse (required after every restart)
-make init-warehouse
-
-# 5. Check services health
+# 4. Check services health
 make health
 
-# 6. Generate simulated Sonatel data
+# 5. Generate simulated Sonatel data (first time only)
 make generate-data
 
-# 7. Verify data was loaded
+# 6. Verify data was loaded
 make verify-data
 ```
 
@@ -137,7 +134,7 @@ make logs             # Tail all service logs
 make clean            # Remove containers and volumes
 
 # Warehouse management
-make init-warehouse   # Create Iceberg schemas and tables (run after every restart)
+make init-warehouse   # Create Iceberg schemas and tables (first time only)
 make show-tables      # List all Iceberg tables (Bronze / Silver / Gold)
 make trino-cli        # Open interactive Trino SQL shell
 
@@ -145,18 +142,6 @@ make trino-cli        # Open interactive Trino SQL shell
 make generate-data    # Generate and insert simulated Sonatel telecom data
 make verify-data      # Check row counts in all Bronze tables
 ```
-
-## Important — After Every Restart
-
-The Iceberg REST catalog uses in-memory storage by default. After restarting
-the platform, always run:
-
-```bash
-make init-warehouse
-```
-
-This recreates table definitions in the catalog. Your data in MinIO is safe —
-only the catalog index needs to be refreshed. See ADR-004 for details.
 
 ## Project Structure
 
@@ -198,6 +183,7 @@ ilam/
 - [x] Step 1 — Base infrastructure (Docker Compose, MinIO, Iceberg REST, Trino, Flink, Airflow)
 - [x] Step 2 — Iceberg tables DDL (Bronze / Silver / Gold) — 20 tables
 - [x] Step 3 — Simulated Sonatel data generator — 2 901 rows across 9 Bronze tables
+- [x] Step 3.1 — Persistent Iceberg REST catalog backed by PostgreSQL
 - [ ] Step 4 — dbt transformation models (Bronze → Silver → Gold)
 - [ ] Step 5 — Airflow orchestration DAGs
 - [ ] Step 6 — Data quality (Great Expectations)
