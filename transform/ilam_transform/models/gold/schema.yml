@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: mart_revenue
+    description: "Daily revenue aggregations by product, region and segment"
+    columns:
+      - name: revenue_date
+        tests: [not_null]
+      - name: total_revenue_xof
+        tests: [not_null]
+
+  - name: mart_network_quality
+    description: "Daily network KPIs by region and technology"
+    columns:
+      - name: kpi_date
+        tests: [not_null]
+
+  - name: mart_om_activity
+    description: "Daily Orange Money activity metrics"
+    columns:
+      - name: activity_date
+        tests: [not_null]

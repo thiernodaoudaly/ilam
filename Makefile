@@ -102,3 +102,21 @@ verify-data:
 		UNION ALL SELECT 'complaints', COUNT(*) FROM iceberg.bronze.complaints \
 		UNION ALL SELECT 'om_transactions', COUNT(*) FROM iceberg.bronze.om_transactions \
 		ORDER BY tbl;" 2>/dev/null
+
+dbt-run:
+	@echo "$(CYAN)Running dbt models...$(RESET)"
+	cd transform/ilam_transform && \
+	  ../../.venv/bin/dbt run --profiles-dir . 2>/dev/null
+	@echo "$(GREEN)dbt run complete.$(RESET)"
+
+dbt-test:
+	@echo "$(CYAN)Running dbt tests...$(RESET)"
+	cd transform/ilam_transform && \
+	  ../../.venv/bin/dbt test --profiles-dir . 2>/dev/null
+	@echo "$(GREEN)dbt tests complete.$(RESET)"
+
+dbt-docs:
+	@echo "$(CYAN)Generating dbt documentation...$(RESET)"
+	cd transform/ilam_transform && \
+	  ../../.venv/bin/dbt docs generate --profiles-dir . 2>/dev/null
+	@echo "$(GREEN)Docs generated. Run 'dbt docs serve' to view.$(RESET)"

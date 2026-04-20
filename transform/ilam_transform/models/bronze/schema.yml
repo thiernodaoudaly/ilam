@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: stg_subscribers
+    description: "Staging view over raw bronze subscribers table"
+    columns:
+      - name: subscriber_id
+        tests: [not_null, unique]
+      - name: msisdn
+        tests: [not_null]
+      - name: account_type
+        tests:
+          - accepted_values:
+              values: ['PREPAID', 'POSTPAID']
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['ACTIVE', 'INACTIVE', 'SUSPENDED']
+
+  - name: stg_cdr_voice
+    description: "Staging view over raw CDR voice table"
+    columns:
+      - name: cdr_id
+        tests: [not_null, unique]
+      - name: duration_seconds
+        tests: [not_null]
+
+  - name: stg_om_transactions
+    description: "Staging view over raw Orange Money transactions"
+    columns:
+      - name: transaction_id
+        tests: [not_null, unique]
+      - name: amount
+        tests: [not_null]

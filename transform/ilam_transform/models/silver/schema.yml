@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: subscribers
+    description: "Enriched and deduplicated subscriber profiles with segmentation"
+    columns:
+      - name: subscriber_id
+        tests: [not_null, unique]
+      - name: msisdn
+        tests: [not_null, unique]
+      - name: customer_segment
+        tests:
+          - accepted_values:
+              values: ['NEW', 'ESTABLISHED', 'LOYAL', 'PREMIUM']
+
+  - name: cdr_enriched
+    description: "Unified CDR table (voice + SMS + data) enriched with subscriber profile"
+    columns:
+      - name: cdr_id
+        tests: [not_null]
+      - name: cdr_type
+        tests:
+          - accepted_values:
+              values: ['VOICE', 'SMS', 'DATA']
+
+  - name: om_transactions
+    description: "Enriched Orange Money transactions with categorization"
+    columns:
+      - name: transaction_id
+        tests: [not_null, unique]

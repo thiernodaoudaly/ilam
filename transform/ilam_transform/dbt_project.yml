@@ -1,0 +1,23 @@
+name: ilam_transform
+version: '1.0.0'
+config-version: 2
+
+profile: ilam_transform
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  ilam_transform:
+    bronze:
+      +materialized: ephemeral
+    silver:
+      +materialized: table
+      +schema: silver
+    gold:
+      +materialized: table
+      +schema: gold
