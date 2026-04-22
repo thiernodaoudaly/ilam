@@ -1,0 +1,30 @@
+{
+  "name": "sonatel-crm-cdc-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.oracle.OracleConnector",
+    "tasks.max": "1",
+
+    "database.hostname": "oracle-crm.sonatel.sn",
+    "database.port": "1521",
+    "database.user": "debezium_user",
+    "database.password": "${file:/opt/kafka/config/secrets.properties:oracle.password}",
+    "database.dbname": "SONATELCRM",
+    "database.server.name": "sonatel_crm",
+
+    "table.include.list": "CRM.SUBSCRIBERS,CRM.CONTRACTS",
+
+    "database.history.kafka.bootstrap.servers": "kafka:9092",
+    "database.history.kafka.topic": "schema-changes.crm",
+
+    "topic.prefix": "sonatel",
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false",
+    "transforms.unwrap.delete.handling.mode": "rewrite",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false"
+  }
+}

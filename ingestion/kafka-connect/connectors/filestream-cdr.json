@@ -1,0 +1,23 @@
+{
+  "name": "sonatel-cdr-filestream-connector",
+  "config": {
+    "connector.class": "org.apache.kafka.connect.file.FileStreamSourceConnector",
+    "tasks.max": "4",
+
+    "file.dir": "/mnt/cdr-landing/",
+    "file.include.pattern": ".*\\.cdr$",
+    "file.poll.interval.ms": "60000",
+
+    "topic": "cdr_voice_stream",
+
+    "transforms": "parseCSV,addMetadata",
+    "transforms.parseCSV.type": "org.apache.kafka.connect.transforms.HoistField$Value",
+    "transforms.addMetadata.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+    "transforms.addMetadata.static.field": "source_system",
+    "transforms.addMetadata.static.value": "MSC_HUAWEI",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+}

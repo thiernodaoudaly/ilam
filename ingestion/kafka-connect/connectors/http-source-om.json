@@ -1,0 +1,24 @@
+{
+  "name": "sonatel-om-http-connector",
+  "config": {
+    "connector.class": "io.confluent.connect.http.HttpSourceConnector",
+    "tasks.max": "2",
+
+    "http.api.url": "https://api-om.sonatel.sn/v1/transactions/stream",
+    "http.request.method": "GET",
+    "http.request.headers": "Authorization:Bearer ${file:/opt/kafka/config/secrets.properties:om.api.token}",
+
+    "topic": "om_transactions_stream",
+
+    "http.poll.interval.ms": "5000",
+    "http.response.list.pointer": "/data/transactions",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+
+    "errors.tolerance": "all",
+    "errors.deadletterqueue.topic.name": "om_transactions_dlq",
+    "errors.deadletterqueue.topic.replication.factor": "3"
+  }
+}

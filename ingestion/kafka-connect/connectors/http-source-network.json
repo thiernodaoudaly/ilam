@@ -1,0 +1,28 @@
+{
+  "name": "sonatel-network-events-connector",
+  "config": {
+    "connector.class": "io.confluent.connect.http.HttpSourceConnector",
+    "tasks.max": "3",
+
+    "http.api.url": "https://oss.sonatel.sn/api/v2/alarms/stream",
+    "http.request.method": "GET",
+    "http.request.headers": "X-API-Key:${file:/opt/kafka/config/secrets.properties:oss.api.key}",
+
+    "topic": "network_events_stream",
+
+    "http.poll.interval.ms": "10000",
+    "http.response.list.pointer": "/alarms",
+
+    "transforms": "addTimestamp",
+    "transforms.addTimestamp.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+    "transforms.addTimestamp.timestamp.field": "ingested_at",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+
+    "errors.tolerance": "all",
+    "errors.deadletterqueue.topic.name": "network_events_dlq",
+    "errors.deadletterqueue.topic.replication.factor": "3"
+  }
+}
